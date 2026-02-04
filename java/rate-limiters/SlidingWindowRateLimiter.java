@@ -38,7 +38,7 @@ public class SlidingWindowRateLimiter{
         Deque<Long> timesForUser = rateLimiter.get(user);
 
         //clean up 
-        while(!timesForUser.isEmpty() && currentTime-timesForUser.peek()> timeLimit){
+        while(!timesForUser.isEmpty() && currentTime-timesForUser.peekFirst()> timeLimit){
             timesForUser.pollFirst();
         }
 
@@ -46,7 +46,7 @@ public class SlidingWindowRateLimiter{
             return false;
         }
 
-        timesForUser.add(currentTime);
+        timesForUser.addLast(currentTime);
         return true;
     }
 }
