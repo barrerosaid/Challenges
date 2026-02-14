@@ -1,5 +1,8 @@
 ﻿using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
+using System;
+using System.Net;
 
 internal sealed class Args
 {
@@ -15,14 +18,46 @@ internal sealed class Args
     public bool Pretty { get; init; } = false;
 }
 
+/*
+	
+Response body
+Download
+[
+  {
+    "id": "Id72f160e1-03b4-409f-bafc-413fbd34d62a",
+    "createdDate": "2026-06-21T17:07:08.6085017",
+    "properties": {
+      "key3bfa61bf-d8c9-41ec-9f18-c0a2c9781216": "value7b9acc49-9cf4-4079-80fa-15e0d94a3f74",
+      "key03411e47-fbf0-44ca-9439-33a60c62ba02": "value971b35d7-8385-47f2-9797-6d0a513add8c",
+      "keyb20d54eb-b3a3-456c-9162-31e664495fad": "value6d57c0f1-e253-4c34-8eca-e507d91b325a"
+    },
+    "title": "Title327dcaa3-09a8-4f9b-86c5-25c156a9d643"
+*/
+public class JsonResponse
+{
+    public String id  { get; set;}
+    public String createdDate  {get; set;}
+    public Dictionary<string, string> properties {get; set;}
+
+    public String title {get; set;}
+}
+
 public static class Program
 {
+    public static List<JsonResponse> results = new List<JsonResponse>();
+
     public static async Task<int> Main(string[] argv)
     {
         try
         {
-            var a = ParseArgs(argv);
-            await RunAsync(a);
+            for(int i=0; i<20; i++){
+                var a = ParseArgs(argv);
+                await RunAsync(a);
+                Thread.Sleep(1000);
+                //return 0;
+            }
+
+            Console.WriteLine("Total results " + results.Count());
             return 0;
         }
         catch (Exception ex)
@@ -53,13 +88,15 @@ public static class Program
             throw new ArgumentException($"Request body is only supported for POST/PUT/PATCH (got {method})");
         }
 
+        headers["api-key"] = "Said";
+
         // Default to JSON content-type when sending a body
         if (hasBody && !headers.ContainsKey("Content-Type"))
         {
             headers["Content-Type"] = "application/json";
         }
 
-        var uri = BuildUri(a.BaseUrl, a.Path, query);
+        var uri = BuildUri(a.BaseUrl, "", query);
 
         using var http = new HttpClient
         {
@@ -85,6 +122,21 @@ public static class Program
 
         using var resp = await http.SendAsync(req);
         var body = await resp.Content.ReadAsStringAsync();
+
+        if(resp.StatusCode != HttpStatusCode.OK)
+        {
+            return;
+        }
+
+        //string[] resArr= body.Split("properties");
+
+        //Console.WriteLine(resp.)
+
+        List<JsonResponse>? json = JsonSerializer.Deserialize<List<JsonResponse>>(body);
+        
+        foreach(JsonResponse jr in json){
+            results.Add(jr);
+        }
 
         Console.WriteLine($"{req.Method} {uri}");
         Console.WriteLine($"Status: {(int)resp.StatusCode}");
@@ -122,9 +174,6 @@ public static class Program
                 case "--base-url":
                     baseUrl = RequireValue(argv, ref i, arg);
                     break;
-                case "--path":
-                    path = RequireValue(argv, ref i, arg);
-                    break;
                 case "--method":
                     method = RequireValue(argv, ref i, arg);
                     break;
@@ -135,6 +184,7 @@ public static class Program
                     query.Add(RequireValue(argv, ref i, arg));
                     break;
                 case "--header":
+                    //header.Add("Api-key: Said");
                     header.Add(RequireValue(argv, ref i, arg));
                     break;
                 case "--data":
@@ -160,7 +210,6 @@ public static class Program
         }
 
         if (string.IsNullOrWhiteSpace(baseUrl)) throw new ArgumentException("--base-url is required");
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("--path is required");
         if (!string.IsNullOrEmpty(data) && !string.IsNullOrEmpty(dataFile))
             throw new ArgumentException("Use only one of --data or --data-file");
 

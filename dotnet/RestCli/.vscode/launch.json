@@ -8,10 +8,8 @@
       "preLaunchTask": "build",
       "program": "${workspaceFolder}/bin/Debug/net10.0/RestCli.dll",
       "args": [
-        "--base-url", "https://httpbin.org",
-        "--path", "/post",
-        "--method", "POST",
-        "--data", "{\"hello\":\"world\"}"
+        "--base-url", "https://rprecretdev.azurewebsites.net/api/items",
+        "--method", "GET"
       ],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
